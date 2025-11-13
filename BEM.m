@@ -101,18 +101,22 @@ msg_pilot_original = msg_casd(1 : original_size); % Corresponding to msg_pilot_a
 
 %%%%%%%%%%%%%%%%%信道估计%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % LS Method
-PLoc = 1: (pilotfrequency+1) :length(h_est); 
-DLoc = setxor(1:length(h_est), PLoc);      % 数据位置
+PLoc = 1: (pilotfrequency+1) : original_size; 
+DLoc = setxor(1: original_size, PLoc);      % 数据位置
 
 inserted_pilots = ones(1, numel(PLoc)); % The inserted pilots are all 1
 h_est = LS_CE(msg_casd, inserted_pilots, PLoc, length(msg_pilot_original), pilotfrequency + 1, 'linear');
 
-msg_casd(msg_casd_len - rest_num2 +1 : msg_casd_len) = []; % 删除原始补零
-msg_casd = msg_casd(DLoc); % 只保留数据子载波
+msg_casd_data = msg_casd(DLoc); % 只保留数据符号
+msg_casd_no_zero = msg_casd_data(1 : numel(msg_casd_data) - rest_num2); % 删除原始补零
+h_ray_data = h_est(DLoc);
+h_ray_data_no_zero = h_ray_data(1 : numel(msg_casd_data) - rest_num2);
+% msg_casd(msg_casd_len - rest_num2 +1 : msg_casd_len) = []; % 删除原始补零
+
 
 %%%%%%%%%%%%%%%%%%%信道均衡(f)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-h_ray = h_est(DLoc);       % 对应的数据子载波信道估计值
-msg_casd_zf = msg_casd./h_ray;
+% h_ray = h_est(DLoc);       % 对应的数据子载波信道估计值
+msg_casd_zf = msg_casd_no_zero./h_ray_data_no_zero;
 
 %%%%%%%%%%%%%%%%%%QPSK解调%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 msg_gry_demod = pskdemod(msg_casd_zf,M, pi/4);      %qpsk demodulate

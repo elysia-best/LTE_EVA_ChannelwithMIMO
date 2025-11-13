@@ -110,7 +110,8 @@ end
 msg_casd = reshape(transpose(msg_fft),1,size(msg_fft,1)*size(msg_fft,2));
 %%%%%%%%%%%%%%%%%信道估计%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%LS channel estimate%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-h = msg_casd(PLoc_1);     %notice that pilot is 1
+y = msg_casd(PLoc_1);     %notice that pilot is 1
+h = y./ones(1, numel(y));
 msg_casd_len = length(msg_casd);
 h_est = interp1(PLoc_1, h, 1:msg_casd_len);
 h_est(msg_casd_len - rest_num + 1 :msg_casd_len) = [];   %去掉补的0
