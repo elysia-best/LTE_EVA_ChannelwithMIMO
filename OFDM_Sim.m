@@ -1,5 +1,7 @@
-%LTE_7:½»Ö¯Æ÷ºÍÒëÂëÆ÷µÄÑ¡ÔñÑÐ¾¿
-%%%%%%%%%%%³õÊ¼Ìõ¼þºÍÐÅºÅÉú³É%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [BER] = OFDM_Sim(SNR_awgn)
+%OFDM ç³»ç»Ÿæ¨¡æ‹Ÿï¼Œè¾“å‡ºBER
+% SNR_awgnï¼š SNR in dB
+%%%%%%%%%%%åˆå§‹æ¡ä»¶å’Œä¿¡å·ç”Ÿæˆ%%%%%%%%%%%%%%%%%%%%%%%%%%
 num_bit = 128000;
 Nsamp = 4;
 M = 4;
@@ -11,46 +13,45 @@ Ts = 1/Rs;
 rng('default');
 rng(67);    %seed = 67
 msg = randi([0,1],1,num_bit);  %generate messege
-SNR_awgn  = 20;%awgn snr
-snr = SNR_awgn;
+% SNR_awgn  = 20000000;%awgn snr
 
-%%%%%%%%%%%QPSKµ÷ÖÆ%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%QPSKè°ƒåˆ¶%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 msg = transpose(msg);
 msg_syb = transpose(reshape(msg, size(msg, 2)*k, size(msg, 1)/k));     %IQ, get symbols
 msg_de = bi2de(msg_syb);    %decimal symbols
 grayencode = bitxor(0:M-1, floor((0:M-1)/2));   %generate gray list by order,[0,1,3,2]
-msg_gry_enc = grayencode(msg_de+1);     %gray encode:0->0(The first),1->1(The second)£¬2->3(The third),3->2(The forth)£¬so by order,msg_enc+1
+msg_gry_enc = grayencode(msg_de+1);     %gray encode:0->0(The first),1->1(The second)ï¼Œ2->3(The third),3->2(The forth)ï¼Œso by order,msg_enc+1
 msg_qpsk = pskmod(msg_gry_enc,M, pi/4);    %QPSK modulation
 
-%%%%%%%%%%%%%%%%%%%%%%%%%´®²¢±ä»»%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-num_carrier = 1024;     %×ÓÔØ²¨ÊýÁ¿
+%%%%%%%%%%%%%%%%%%%%%%%%%ä¸²å¹¶å˜æ¢%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+num_carrier = 1024;     %å­è½½æ³¢æ•°é‡
 len_cp = 30;    %length of cp
 
-%%%%%%%%%%Ìí¼Óµ¼Æµ%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-pilotfrequency = 12;     %µ¼Æµ¼ä¸ô
-pilot_num = fix(length(msg_qpsk)/pilotfrequency);    %µ¼ÆµÊýÁ¿
-rest_num2 = pilotfrequency*(pilot_num + 1) - length(msg_qpsk);  %µ¼Æµ²¹Áã
+%%%%%%%%%%æ·»åŠ å¯¼é¢‘%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pilotfrequency = 12;     %å¯¼é¢‘é—´éš”
+pilot_num = fix(length(msg_qpsk)/pilotfrequency);    %å¯¼é¢‘æ•°é‡
+rest_num2 = pilotfrequency*(pilot_num + 1) - length(msg_qpsk);  %å¯¼é¢‘è¡¥é›¶
 pilot_num =pilot_num + 1;
-msg_qpsk(1, pilot_num * pilotfrequency) = 0;    %²¹0
+msg_qpsk(1, pilot_num * pilotfrequency) = 0;    %è¡¥0
 
-msg_pilot = transpose(reshape(msg_qpsk, pilotfrequency,length(msg_qpsk)/pilotfrequency));   %trick, Ìí¼Óµ¼Æµ·½±ã¶øÒÑ
+msg_pilot = transpose(reshape(msg_qpsk, pilotfrequency,length(msg_qpsk)/pilotfrequency));   %trick, æ·»åŠ å¯¼é¢‘æ–¹ä¾¿è€Œå·²
 msg_pilot_aft = zeros(length(msg_qpsk)/pilotfrequency,pilotfrequency+1);    %initialize
 for i = 1:length(msg_qpsk)/pilotfrequency
-   msg_pilot_aft(i,:) = [1, msg_pilot(i,:)] ;   %²åÈëµ¼Æµ
+   msg_pilot_aft(i,:) = [1, msg_pilot(i,:)] ;   %æ’å…¥å¯¼é¢‘
 end
-msg_pilot_aft_casd = reshape(transpose(msg_pilot_aft), 1, size(msg_pilot_aft,1)*size(msg_pilot_aft,2));     %×ª³ÉÐÐ
+msg_pilot_aft_casd = reshape(transpose(msg_pilot_aft), 1, size(msg_pilot_aft,1)*size(msg_pilot_aft,2));     %è½¬æˆè¡Œ
 
-%%%%%%%%%´®²¢±ä»»%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%ä¸²å¹¶å˜æ¢%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 group_prl = fix(length(msg_pilot_aft_casd)/num_carrier);   %number of the groups which are divided in serial-to-parallel conversion
 more_num3 = length(msg_pilot_aft_casd) - num_carrier*group_prl; %the same as interleaving
-rest_num3 = num_carrier*(group_prl + 1) - length(msg_pilot_aft_casd);  %µÚ¶þ´Î²¹0¸öÊý
-rest_num = rest_num2 + rest_num3 ;   %×Ü²¹ÁãµÄ¸öÊý
+rest_num3 = num_carrier*(group_prl + 1) - length(msg_pilot_aft_casd);  %ç¬¬äºŒæ¬¡è¡¥0ä¸ªæ•°
+rest_num = rest_num2 + rest_num3 ;   %æ€»è¡¥é›¶çš„ä¸ªæ•°
 group_prl = group_prl + 1;
-msg_pilot_aft_casd(1, num_carrier * group_prl) = 1;   %²¹1ÊÇÎªÁË°Ñ²»ÉÏµÄ²¿·ÖÒ²¼ä¸ô²åÈëµ¼Æµ£¬±ÜÃâºóÃæÄÚ²åNaN
+msg_pilot_aft_casd(1, num_carrier * group_prl) = 1;   %è¡¥1æ˜¯ä¸ºäº†æŠŠä¸ä¸Šçš„éƒ¨åˆ†ä¹Ÿé—´éš”æ’å…¥å¯¼é¢‘ï¼Œé¿å…åŽé¢å†…æ’NaN
 
 msg_prl = transpose(reshape(msg_pilot_aft_casd, num_carrier, group_prl));     %parallel signals
-PLoc_1 = 1: (pilotfrequency+1) :length(msg_pilot_aft_casd);   %µ¼ÆµÎ»ÖÃ
-DLoc_1 = setxor(1:length(msg_pilot_aft_casd), PLoc_1);      %Êý¾ÝÎ»ÖÃ
+PLoc_1 = 1: (pilotfrequency+1) :length(msg_pilot_aft_casd);   %å¯¼é¢‘ä½ç½®
+DLoc_1 = setxor(1:length(msg_pilot_aft_casd), PLoc_1);      %æ•°æ®ä½ç½®
 
 %%%%%%%%%%%%OFDM%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 N = sqrt(num_carrier);  %normalization factor
@@ -106,30 +107,30 @@ for j = 1 : group_prl
 
 end
 
-%%%%%%%%%%%%%%%%%%²¢´®±ä»»%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%å¹¶ä¸²å˜æ¢%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 msg_casd = reshape(transpose(msg_fft),1,size(msg_fft,1)*size(msg_fft,2));
-%%%%%%%%%%%%%%%%%ÐÅµÀ¹À¼Æ%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%ä¿¡é“ä¼°è®¡%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%LS channel estimate%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 y = msg_casd(PLoc_1);     %notice that pilot is 1
 h = y./ones(1, numel(y));
 msg_casd_len = length(msg_casd);
 h_est = interp1(PLoc_1, h, 1:msg_casd_len);
-h_est(msg_casd_len - rest_num + 1 :msg_casd_len) = [];   %È¥µô²¹µÄ0
+h_est(msg_casd_len - rest_num + 1 :msg_casd_len) = [];   %åŽ»æŽ‰è¡¥çš„0
 PLoc = 1: (pilotfrequency+1) :length(h_est); 
-DLoc = setxor(1:length(h_est), PLoc);      %Êý¾ÝÎ»ÖÃ
+DLoc = setxor(1:length(h_est), PLoc);      %æ•°æ®ä½ç½®
 h_ray = h_est(DLoc);
 
 
-msg_casd(msg_casd_len - rest_num2 +1 : msg_casd_len) = [];     %È¥µô²¹µÄ0
+msg_casd(msg_casd_len - rest_num2 +1 : msg_casd_len) = [];     %åŽ»æŽ‰è¡¥çš„0
 msg_casd = msg_casd(DLoc);
-%%%%%%%%%%%%%%%%%%%ÐÅµÀ¾ùºâ(f)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%ä¿¡é“å‡è¡¡(f)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 msg_casd_zf = msg_casd./h_ray;
 %     msg_casd_zf_len = length(msg_casd_zf);
 %     msg_casd_zf(msg_casd_zf_len - rest_num2 +1 : msg_casd_zf_len) = [];
 
 
-%%%%%%%%%%%%%%%%%%QPSK½âµ÷%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%QPSKè§£è°ƒ%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 msg_gry_demod = pskdemod(msg_casd_zf,M, pi/4);      %qpsk demodulate
 [dummy, graydecode] = sort(grayencode); 
 graydecode = graydecode - 1;
@@ -138,9 +139,8 @@ msg_demod_bi = de2bi(msg_demod,k)';
 msg_demod_bi = msg_demod_bi(:);     %gray->normal
 
 
-%%%%%%%%%%%%%%%%%%%¼ÆËãBER&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+%%%%%%%%%%%%%%%%%%%è®¡ç®—BER&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 % msg(num_bit-34: num_bit) = [];      %for convolutional code
 msg_wrong = abs(msg_demod_bi - msg);      %for turbo code
 BER = sum(msg_wrong)/num_bit;
-
-
+end
